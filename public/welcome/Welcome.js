@@ -1,4 +1,5 @@
-const apiUrl = "http://localhost:3000";
+// const apiUrl = "http://localhost:3000";
+const apiUrl = "http://54.234.242.153:3000";
 // console.log("in dom")
 document.addEventListener("DOMContentLoaded" , function(){
 //    console.log("script loaded")
