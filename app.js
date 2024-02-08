@@ -51,7 +51,7 @@ User.hasMany(forgotPasswordReq,{
 })
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'welcome', 'welcome.html'));
+    res.sendFile(path.join(__dirname, 'public', 'welcome', 'Welcome.html'));
   });
   
 app.use('/api',userRoute);
