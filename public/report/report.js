@@ -7,7 +7,7 @@ const header2 = {
 }
 
 
-fetch("http://54.234.242.153:3000/expenses/fileHistory",{
+fetch("/expenses/fileHistory",{
     method:"GET",
     headers:header2,
 })

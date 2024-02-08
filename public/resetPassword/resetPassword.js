@@ -1,5 +1,5 @@
 // const apiUrl = "http://localhost:3000"; 
-const apiUrl = "http://54.234.242.153:3000"
+const apiUrl = "http://65.0.72.208:3000"
 
 const password = document.getElementById("password");
 const confirmPassword = document.getElementById("confirmPassword");
