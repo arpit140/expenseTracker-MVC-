@@ -1,5 +1,5 @@
 // const apiUrl1 = `http://localhost:3000`;
-const apiUrl = "http://13.233.255.87:3000"
+// const apiUrl = "http://13.233.255.87:3000"
 
 const form = document.getElementById("expenseForm");
 const submitButton = document.getElementById("submitButton");
@@ -20,7 +20,7 @@ let isUpdating = false;
 const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("isPremium");
-  window.location.href = `${apiUrl1}/api/welcome`;
+  window.location.href = `/api/welcome`;
 };
 document.getElementById("logoutBtn").addEventListener("click", logout);
 
@@ -38,7 +38,7 @@ form.addEventListener("submit", async (e) => {
   try {
     if (isUpdating) {
       const expanseId = formData.get("expenseId");
-      const response = await fetch(`${apiUrl1}/expenses/${expanseId}`, {
+      const response = await fetch(`/expenses/${expanseId}`, {
         method: "PUT",
         headers: headers,
         body: JSON.stringify(expense),
@@ -52,7 +52,7 @@ form.addEventListener("submit", async (e) => {
         console.log("error updating expense", response.statusText);
       }
     } else {
-      const response = await fetch(`${apiUrl1}/expenses`, {
+      const response = await fetch(`/expenses`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(expense),
@@ -73,7 +73,7 @@ let currentPage=1;
 
 async function fetchExpenseList(page = 1) {
   try {
-    const response = await fetch(`${apiUrl1}/expenses/paginated?page=${page}`, {
+    const response = await fetch(`/expenses/paginated?page=${page}`, {
       method: "GET",
       headers: headers,
     });
@@ -133,7 +133,7 @@ expanseList.addEventListener("click", async (e) => {
   if (e.target && e.target.matches("button.update-button")) {
     const expenseId = e.target.getAttribute("data-expense-id");
     try {
-      const response = await fetch(`${apiUrl}/api/expenses/${expenseId}`, {
+      const response = await fetch(`/api/expenses/${expenseId}`, {
         method: "GET",
         headers: headers,
       });
@@ -158,7 +158,7 @@ expanseList.addEventListener("click", async (e) => {
 });
 
 function deleteExpanse(expanseId) {
-  fetch(`${apiUrl1}/expenses/${expanseId}`, {
+  fetch(`/expenses/${expanseId}`, {
     method: "DELETE",
     headers: headers,
   })

@@ -1,5 +1,5 @@
 // const apiUrl = "http://localhost:3000";
-const apiUrl = "http://13.233.255.87:3000"
+// const apiUrl = "http://13.233.255.87:3000"
 
 
 const signupForm = document.getElementById("signupForm");
@@ -21,7 +21,7 @@ signupForm.addEventListener("submit", async (e) => {
   }
 
   try {
-    const response = await fetch(`${apiUrl}/api/signup`, {
+    const response = await fetch(`/api/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,7 +38,7 @@ signupForm.addEventListener("submit", async (e) => {
       localStorage.setItem("token",token)
       localStorage.setItem("isPremium",isPremium)
 
-      window.location.href = `${apiUrl}/api/login`;
+      window.location.href = `/api/login`;
     } else {
       const data = await response.json();
       errorDiv.textContent = data.error;

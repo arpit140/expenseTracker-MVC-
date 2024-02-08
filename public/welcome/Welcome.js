@@ -1,5 +1,5 @@
 // const apiUrl = "http://localhost:3000";
-const apiUrl = "http://13.233.255.87:3000";
+// const apiUrl = "http://13.233.255.87:3000";
 // console.log("in dom")
 document.addEventListener("DOMContentLoaded" , function(){
 //    console.log("script loaded")
@@ -10,12 +10,12 @@ document.addEventListener("DOMContentLoaded" , function(){
     loginBtn.addEventListener("click" , function(event) {
         event.preventDefault();
         // console.log("---------------")
-        window.location.href = `${apiUrl}/api/login`;
+        window.location.href = `/api/login`;
     })
 
     signupBtn.addEventListener("click" , function(event){
         event.preventDefault();
         // console.log("+++++++++++++++")
-        window.location.href = `${apiUrl}/api/signup`;
+        window.location.href = `/api/signup`;
     });
 });

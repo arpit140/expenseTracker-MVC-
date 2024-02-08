@@ -1,5 +1,5 @@
 // const apiUrl = `http://localhost:3000`;
-const apiUrl = "http://13.233.255.87:3000"
+// const apiUrl = "http://13.233.255.87:3000"
 
 const isPremium = localStorage.getItem("isPremium");
 const premiumBtn = document.getElementById("premiumBtn");
@@ -13,7 +13,7 @@ const header = {
 
 premiumBtn.addEventListener("click", async (e) => {
   try {
-    let response = await fetch(`${apiUrl}/api/premium/takepremium`, {
+    let response = await fetch(`/api/premium/takepremium`, {
       method: "GET",
       headers: header,
     });
@@ -32,7 +32,7 @@ premiumBtn.addEventListener("click", async (e) => {
         //sending payment consfirmation to the backend
         try {
           const paymentResponse = await fetch(
-            `${apiUrl}/api/premium/updatetransactionstatus`,
+            `/api/premium/updatetransactionstatus`,
             {
               method: "POST",
               headers: header,
@@ -91,7 +91,7 @@ function showPremiumUI() {
 function leaderboardreport(data , btn){
     btn.addEventListener("click", async() =>{
         try{
-            let result = await fetch(`${apiUrl}/api/premium/${data}`,{
+            let result = await fetch(`/api/premium/${data}`,{
                 method:"GET",
                 headers:header,
             })

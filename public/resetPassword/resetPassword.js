@@ -1,5 +1,5 @@
 // const apiUrl = "http://localhost:3000"; 
-const apiUrl = "http://13.233.255.87:3000"
+// const apiUrl = "http://13.233.255.87:3000"
 
 const password = document.getElementById("password");
 const confirmPassword = document.getElementById("confirmPassword");
@@ -36,7 +36,7 @@ submitBtn.addEventListener("click", async () => {
       uuid: uuid,
     };
 
-    const sendPassword = await fetch(`${apiUrl}/api/reset/newPassword`, {
+    const sendPassword = await fetch(`/api/reset/newPassword`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

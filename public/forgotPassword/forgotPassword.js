@@ -3,7 +3,7 @@ const forgotemailbtn = document.getElementById("forgotemailbtn");
 const forgotPasswordForm = document.getElementById("forgotPasswordForm");
 const message = document.getElementById("message");
 // const apiUrl = `http://localhost:3000`;
-const apiUrl = "http://13.233.255.87:3000"
+// const apiUrl = "http://13.233.255.87:3000"
 
 forgotemailbtn.addEventListener("click", async () => {
   let foremail = forgotemail.value;
@@ -13,7 +13,7 @@ forgotemailbtn.addEventListener("click", async () => {
   };
   console.log(obj);
   try {
-    const response = await fetch(`${apiUrl}/api/reset/forgotPassword`, {
+    const response = await fetch(`/api/reset/forgotPassword`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(obj),

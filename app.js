@@ -50,6 +50,10 @@ User.hasMany(forgotPasswordReq,{
     foreignKey:"userId"
 })
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'welcome', 'welcome.html'));
+  });
+  
 app.use('/api',userRoute);
 app.use('/api',redirectingRoute);
 app.use('/api/reset',forgotPasswordRoute);
