@@ -1,5 +1,5 @@
 // const apiUrl1 = `http://localhost:3000`;
-const apiUrl = "http://65.0.72.208:3000"
+const apiUrl = "http://13.233.255.87:3000"
 
 const form = document.getElementById("expenseForm");
 const submitButton = document.getElementById("submitButton");
