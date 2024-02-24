@@ -1,178 +1,143 @@
+const mongoose = require("mongoose");
 const Expense = require("../models/expanseModel");
 const User = require("../models/userModel");
-const sequelize = require("../util/db");
-const downloadedFiles = require("../models/downloadFiles");
+const DownloadedFiles = require("../models/downloadFiles");
+// const S3Services = require("../service/S3services");
 
-const createExpanse = async (req, res) => {
-  let t;
-  try {
-    const { name, amount, quantity } = req.body;
-    // const user = req.user;
-
-    const userId = req.user.userId;
-
-    t = await sequelize.transaction();
-
-    // Validation
-    if (!name || !amount || !quantity) {
-      return res.status(400).json({ Error: "Missing required fields" });
-    }
-
-    const newExpanse = await Expense.create(
-      {
-        name,
-        quantity,
-        amount,
-        userId: userId,
-      },
-      { transaction: t }
-    );
-
-    await User.update(
-      {
-        total_cost: sequelize.literal(`total_cost + ${amount}`),
-      },
-      {
-        where: { id: userId },
-        transaction: t,
-      }
-    );
-
-    await t.commit();
-    res.status(201).json(newExpanse);
-  } catch (error) {
-    if (t) {
-      await t.rollback();
-    }
-
-    console.log("Error creating expense:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while inserting the user." });
-  }
-};
-
-const fetchExpanse = async (req, res) => {
+const getAllPaginatedExpenses = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const page = req.query.page || 1;
-    const pageSize = 5;
-    const {count, rows} = await Expense.findAndCountAll({ 
-      where: { userId:userId },
-      attributes:["id","name","quantity","amount"],
-      limit:pageSize,
-      offset:(page-1)*pageSize,    
-    });
-    const totalPAges = Math.ceil(count/pageSize);
+    const page = req.query.page || 1; // Get the requested page from query parameters
+    const pageSize = 4; // Set the page size
+
+    const count = await Expense.countDocuments({ userId });
+    const expenses = await Expense.find({ userId })
+      .select("id name quantity amount")
+      .skip((page - 1) * pageSize)
+      .limit(pageSize);
+    const totalPages = Math.ceil(count / pageSize);
 
     res.json({
-      totalItems : count,
-      totalPAges: totalPAges,
-      currentPages:page,
-      expenses:rows,
+      totalItems: count,
+      totalPages: totalPages,
+      currentPage: page,
+      expenses: expenses,
     });
   } catch (error) {
-    console.log("error occured while fethcing data", error);
-    res.status(500).json({ error: " no data available or server not working" });
+    console.error("Error fetching paginated expenses:", error);
+    res.status(500).json({
+      error: "An error occurred while fetching paginated expenses.",
+    });
   }
 };
-
 const getExpenseById = async (req, res) => {
   const expenseId = req.params.id;
   try {
-    const row = await Expense.findOne({ where: { id: expenseId } });
-    if (!row) {
-      return res.status(404).json({ error: "Expense Not Found" });
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      return res.status(404).json({ error: "Expense not found" });
     }
-    res.json(row);
-  } catch (err) {
-    console.log(err);
-    res
-      .status(500)
-      .json({ Error: "Internal Server Error while fetching a user." });
+    res.json(expense);
+  } catch (error) {
+    console.error("error fetching expense", error);
+    res.status(500).json({
+      error: "An error occurred while fetching a user.",
+    });
   }
 };
-const deleteExpanse = async (req, res) => {
+
+const createExpense = async (req, res) => {
+  try {
+    const { name, quantity, amount } = req.body;
+
+    const newExpense = await Expense.create({
+      name,
+      quantity,
+      amount,
+      userId: req.user.userId,
+    });
+
+    await User.updateOne(
+      { _id: req.user.userId },
+      { $inc: { totalCost: quantity*amount } }
+    );
+    res.status(201).json(newExpense);
+  } catch (error) {
+    console.error("Error creating expense:", error);
+    res.status(500).json({
+      error: "An error occurred while inserting the user.",
+    });
+  }
+};
+
+const deleteExpense = async (req, res) => {
   let t;
   const expenseId = req.params.id;
+  // console.log(expenseId);
   try {
-    t = await sequelize.transaction();
-
-    const idMatched = await Expense.findOne({
-      where: { id: expenseId },
-      attribute: ["id", "amount"],
-      transaction: t,
-    });
-    if (!idMatched) {
-      await t.rollback();
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
       return res.status(404).json({
         error: "Expense not found",
       });
     }
+    t = await mongoose.startSession();
+    t.startTransaction();
 
-    const amountToDelete = idMatched.amount;
-    await User.update(
-      {
-        total_cost: sequelize.literal(`total_cost-${amountToDelete}`),
-      },
-      {
-        where: { id: req.user.userId },
-        transaction: t,
-      }
+    const amountToDelete = expense.amount;
+    await User.updateOne(
+      { _id: req.user.userId },
+      { $inc: { totalCost: -amountToDelete } }
     );
-    await Expense.destroy({
-      where: { id: expenseId },
-      transaction: t,
-    });
-    await t.commit();
+
+    await Expense.deleteOne({ _id: expenseId });
+
+    await t.commitTransaction();
 
     res.json({
-      message: "Expanse deleted Successfully",
+      message: "Expense deleted successfully",
     });
   } catch (error) {
     if (t) {
-      await t.rollback();
+      await t.abortTransaction();
     }
-    console.log("error deleting expense:", error);
-    res
-      .status(500)
-      .json({ Error: "An error occurred while deleting the user." });
+    console.error("error deleting expense:", error);
+    res.status(500).json({
+      error: "An error occurred while deleting the user.",
+    });
   }
 };
 
 const updateExpense = async (req, res) => {
   let t;
   const expenseId = req.params.id;
-  const { name, amount, quantity } = req.body;
-  // const user = req.user;
+  const { name, quantity, amount } = req.body;
 
   try {
     const userId = req.user.userId;
-    t = await sequelize.transaction();
+    t = await mongoose.startSession();
+    t.startTransaction();
 
-    const [rowUpdated] = await Expense.update(
+    const updatedExpense = await Expense.findByIdAndUpdate(
+      expenseId,
       { name, quantity, amount },
-      { where: { id: expenseId, userId }, returning: true, transaction: t }
+      { new: true }
     );
-    const updatedExpense = await Expense.findOne({ where: { id: expenseId } });
-
-    if (rowUpdated === 0) {
-      throw new Error("Expense not found");
+    if (!updatedExpense) {
+      await t.abortTransaction();
+      return res.status(404).json({
+        error: "Expense not found",
+      });
     }
+    const diffAmount = amount - updatedExpense.amount;
 
-    const updatedExpanse = rowUpdated[1][0];
-    const diffAmount = amount - updatedExpanse.amount;
+    await User.updateOne({ _id: userId }, { $inc: { totalCost: diffAmount } });
 
-    await User.update(
-      { total_cost: sequelize.literal(`total_cost + ${diffAmount}`) },
-      { where: { id: userId }, transaction: t }
-    );
-    await t.commit();
-
+    await t.commitTransaction();
     res.json(updatedExpense);
   } catch (error) {
     if (t) {
-      await t.rollback();
+      await t.abortTransaction();
     }
     console.error("error updating expense:", error);
     res.status(500).json({
@@ -181,31 +146,29 @@ const updateExpense = async (req, res) => {
   }
 };
 
-const downloadedExpense = async (req, res) => {
+const downloadExpense = async (req, res) => {
   try {
     const userId = req.user.userId;
-    let Expense = await Expense.findAll({ where: { userId: userId } });
-    const stringifiedExpenses = JSON.stringify(Expense);
+    let expenses = await Expense.find({ userId });
+    const stringifiedExpenses = JSON.stringify(expenses);
     const filename = `Expenses${userId}/${new Date()}.txt`;
-    const fileUrl = await S3services.uploadToS3(stringifiedExpenses, filename);
-    console.log(fileUrl);
-
-    const downloadFiles = await downloadedFiles.create({
-      link: fileUrl,
+    const fileURL = await S3Services.uploadToS3(stringifiedExpenses, filename);
+    console.log("this is the fileUrl", fileURL);
+    const downloadfiles = await DownloadedFiles.create({
+      link: fileURL,
       userId: userId,
     });
-    res.status(200).json({ fileUrl, success: true });
-  } catch (e) {
-    res
-      .status(500)
-      .json({ message: "Something not working onbackend side", err: e });
+    res.status(200).json({ fileURL, success: true });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "something went wrong", err: err });
   }
 };
 
-const getFileHistory = async (req, res) => {
+const getfilehistory = async (req, res) => {
   try {
     let userId = req.user.userId;
-    let files = await downloadedFiles.findAll({ where: { userId: userId } });
+    let files = await DownloadedFiles.find({ userId });
     console.log(files);
     res.json(files);
   } catch (err) {
@@ -214,11 +177,11 @@ const getFileHistory = async (req, res) => {
 };
 
 module.exports = {
-  createExpanse,
-  fetchExpanse,
-  deleteExpanse,
+  createExpense,
+  getAllPaginatedExpenses,
   getExpenseById,
   updateExpense,
-  getFileHistory,
-  downloadedExpense,
+  deleteExpense,
+  getfilehistory,
+  downloadExpense,
 };

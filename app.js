@@ -1,76 +1,64 @@
 require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const sequelize = require('./util/db');
+//importing the modules here in server.js
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+
+const mongoose = require("mongoose");
+const url = 'mongodb+srv://arpit:YRROKS89QWbHULpv@cluster0.lvujxxc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+
+
+
 const morgan = require("morgan");
 
-const verify = require('./middleware/verifyTokenHandler');
+//importing routes
+const userRoute = require("./routes/userRoute");
+const forgotPassRoute = require("./routes/forgotPasswordRoute");
+const premiumRoute = require("./routes/premiumRoute");
+const welcome = require("./routes/welcome");
 
-const userRoute = require('./routes/userRoute');
-const expanseRouter = require('./routes/expanseRoute');
-const redirectingRoute = require('./routes/redirectingRoute');
-const premiumRoute = require('./routes/premiumRoute');
-const forgotPasswordRoute = require('./routes/forgotPasswordRoute')
 
-const User = require('./models/userModel');
-const Expanse = require('./models/expanseModel');
-const Order = require('./models/orderModel');
-const forgotPasswordReq = require('./models/forgotPassword');
-
+//instantiating the application
 const app = express();
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, "access.log"),
+  { flags: "a" }
+);
+
+// calling cors, json, making absolute path for static files
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({extended : false}));
+app.use(express.static("public"));
+app.use(morgan("combined", { stream: accessLogStream }));
 
+
+
+//defining the route 
+app.use('/user', userRoute);
+app.use('/user',forgotPassRoute)
+app.use("/premium", premiumRoute);
+app.use(welcome);
+
+
+
+// making the port for server to listen
 const port = process.env.PORT || 3000;
-app.use(express.static(path.join(__dirname,"public")));
-// app.use(morgan("combined", { stream: accessLogStream }));
 
-Expanse.belongsTo(User , {
-    foreignKey: "userId",
-    onDelete:"CASCADE",
-});
-User.hasMany(Expanse, {
-    foreignKey:"userId",
-    onDelete:"CASCADE",
-});
-Order.belongsTo(User,{
-    foreignKey:"userId",
-    onDelete:"CASCADE",
-})
-User.hasMany(Order,{
-    foreignKey:"userId",
-    onDelete: "CASCADE",
-})
-forgotPasswordReq.belongsTo(User,{
-    foreignKey:"userId"
-})
-User.hasMany(forgotPasswordReq,{
-    foreignKey:"userId"
-})
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'welcome', 'Welcome.html'));
-  });
-  
-app.use('/api',userRoute);
-app.use('/api',redirectingRoute);
-app.use('/api/reset',forgotPasswordRoute);
-app.use('/expenses',verify.verify,expanseRouter);
-app.use('/api/premium',verify.verify,premiumRoute);
-// app.use((err, req, res, next) => {
-//     console.error(err.stack);
-//     res.status(500).send('Something went wrong!');
-// });
-
-sequelize
-    .sync({force:false})
-    .then(()=>{
-        console.log("Database Synced")
-    })
-    .then(result =>{
-        app.listen(port, ()=>{
-            console.log('server running on port :',port);
-        })
-    }).catch(err=>console.log(err))
+// listening on port
+async function initiate() {
+  try {
+    await mongoose.connect(url, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    app.listen(port, () => {
+      console.log(`Server is running at ${port}`);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
+initiate();

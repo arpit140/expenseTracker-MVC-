@@ -1,21 +1,16 @@
 const express = require("express");
-const {
-  premiumPending,
-  premiumVerification,
-} = require("../controllers/premiumController");
-const {
-  getUserLeaderBoard,
-  daily,
-  monthly,
-  yearly,
-} = require("../controllers/leadboardController");
-const router = express.Router();
+const welcomeController = require("../controllers/welcomeController");
+const {premiumpending , premiumverification} = require("../controllers/premiumuserController");
+const {getUserLeaderBoard, daily, monthly, yearly} = require("../controllers/leadboardController");
 
-router.get("/takepremium", premiumPending);
-router.post("/updatetransactionstatus", premiumVerification);
-router.get("/leaderboard", getUserLeaderBoard);
-router.get("/daily", daily);
-router.get("/monthly", monthly);
-router.get("/yearly", yearly);
+const router = express.Router();
+const verify = require("../middleware/verifyToken");
+router.get("/takepremium", verify, premiumpending);
+router.post("/updatetransactionstatus",verify, premiumverification);
+router.get("/leaderboard", verify, getUserLeaderBoard);
+router.get("/daily", verify, daily);
+router.get("/monthly", verify, monthly);
+router.get("/yearly", verify, yearly);
+router.get("/report", welcomeController.getReportpage);
 
 module.exports = router;

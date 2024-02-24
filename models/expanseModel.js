@@ -1,23 +1,29 @@
-const Sequelize = require('sequelize');
-const sequelize = require('../util/db');
+const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const expanse = sequelize.define("expanse",{
-    name:{
-        type: Sequelize.STRING,
-        allowNull:false
+const List = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    quantity:{
-        type: Sequelize.INTEGER,
-        allowNull:false,
+    name: {
+      type: String,
+      required: true,
     },
-    amount:{
-        type:Sequelize.INTEGER,
-        allowNull:false,
+    quantity: {
+      type: Number,
+      required: true,
     },
-    userId:{
-        type: Sequelize.INTEGER,
-        allowNull:false,
-    }
-})
+    amount: {
+      type: Number,
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = expanse;
+module.exports = mongoose.model("Expenses", List);

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Allow scripts from 'self', Bootstrap CDN, and Razorpay -->
+    <title>Expense Tracker Website</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/expenseTracker.css">
+    
+    <style>
+      body {
+          background-color: #f8f9fa;
+      }
+
+      nav {
+          background-color: #343a40;
+      }
+
+      #mainHeading {
+          text-align: center;
+          margin-top: 20px;
+          color: #007bff;
+      }
+
+      .container {
+          background-color: #ffffff;
+          border-radius: 8px;
+          padding: 20px;
+          margin-top: 20px;
+      }
+
+      .right-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-top: 20px;
+      }
+
+      .contain {
+          background-color: #ffffff;
+          border-radius: 8px;
+          padding: 20px;
+          margin-top: 20px;
+          width: 100%;
+          max-width: 800px;
+      }
+
+      .pagination-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-top: 20px;
+      }
+
+      .pagination-container button {
+          background-color: #007bff;
+          color: #fff;
+          border: none;
+          border-radius: 4px;
+          margin: 0 5px;
+          padding: 8px 12px;
+          cursor: pointer;
+      }
+
+      .modal-content {
+          background-color: #ffffff;
+          color: #000000;
+      }
+
+      #leaderboardModalLabel {
+          color: #007bff;
+      }
+
+      #leaderboard-data {
+          max-height: 300px;
+          overflow-y: auto;
+      }
+      .expense-item {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .expense-item span {
+        margin-right: 10px;
+      }
+
+      .expense-item button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-right: 5px;
+        cursor: pointer;
+      }
+
+      .expense-item button:hover {
+        background-color: #0056b3;
+      }
+
+
+
+
+      /* Add any additional styles as needed */
+  </style>
+</head>
+    
+
+<body>
+  <nav class="navbar navbar-expand-lg text-light" style="background-color: #5f6368">
+  <div class="container-fluid p-2">
+    <a class="navbar-brand" style="margin-left: 10px;" href="#">
+      <img src="/images/expenselogo.png" alt="brand-image" class="img-fluid" width="50px" height="50px">
+    </a>
+    <h2 class="mb-0 d-flex flex-column align-items-center">
+      <span class="fw-bold fst-italic text-light">ExpenseTracker</span>
+    </h2>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" style="margin-right: 50px;" id="navmenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <!-- Premium slider container -->
+          <div id="premiumSlider" style="display: none;">
+            
+            <button class="nav-link fs-4 text-light" id="downloadhistory">History</button>
+            <button class="nav-link fs-4 text-light" id="report">Report</button>
+            <button class="nav-link fs-4 text-light" id="yearly">Yearly</button>
+            <button class="nav-link fs-4 text-light" id="monthly">Monthly</button>
+            <button class="nav-link fs-4 text-light" id="daily">Daily</button>
+            <button class="nav-link fs-4 text-light" id="leaderboardbtn">Leaderboard</button>
+          </div>
+        </li>
+        <li class="nav-item">
+          <!-- Take Premium button -->
+          <button class="nav-link fs-4 text-light" id="premiumbtn">Take Premium</button>
+        </li>
+        <li class="nav-item">
+          <!-- Logout button -->
+          <button class="nav-link fs-4 text-light" id="logoutButton">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<h1 id="mainHeading" style="margin-top: 20px;">Expense Tracker</h1>
+  <form id="expenseForm" class="container">
+    <label class="form-label" for="name">Name:</label>
+    <input class="form-control" type="text" id="name" name="name" required><br>
+    
+    <label class="form-label" for="quantity">Quantity:</label>
+    <input class="form-control" type="number" id="quantity" name="quantity" required><br>
+    
+    <label class="form-label" for="amount">Amount:</label>
+    <input class="form-control" type="number" id="amount" name="amount" required><br>
+    <input class="form-control" type="hidden" id="expenseId" name="expenseId">
+
+    <button class="btn btn-outline-primary" type="submit" id="submitButton">Submit</button>
+  </form>
+  
+<div class="right-section">
+  <div class="contain" id="expenseList"></div>
+  <div class="pagination-container" id="expense-pagination-container"><!-- Expense Pagination links will be displayed here -->
+  <button id="prevExpensePageButton">&lt;</button>
+  <span id="currentExpensePage"></span>
+  <button id="nextExpensePageButton">&gt;</button>
+  </div>
+  </div>
+  <div class="modal fade" id="leaderboardModal" tabindex="-1" aria-labelledby="leaderboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="background-color: #ffffff; color: #000000;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="leaderboardModalLabel">LeaderBoard</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group" id="leaderboard-data"></div>
+          <!-- Your leaderboard data goes here -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="leaderboard-pagination-container" id="leaderboard"> -->
+    <!-- <h2>LeaderBoard</h2> -->
+  <!-- <div class="list-group" id="leaderboard-data"></div> -->
+  <!-- <div class="pagination-container" id="leaderboard-pagination-container"></div> -->
+  <!-- <button id="prevPageButton">&lt;</button>
+  <span id="currentPage">Page 1</span>
+  <button id="nextPageButton">&gt;</button> -->
+<!-- </div>    -->
+<!-- <footer class="bg-secondary bg-opacity-100 py-4 text-light">
+    <!-- Footer Content Here -->
+  <!-- </footer>  -->
+</body>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="/js/expensetracker/frontendexpense.js"></script> 
+  <script src="/js/expensetracker/frontendpremiumuser.js"></script>
+
+</html>

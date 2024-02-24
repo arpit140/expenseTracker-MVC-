@@ -1,128 +1,114 @@
 require("dotenv").config();
-const bcrypt = require("bcrypt");
-let SibApiV3Sdk = require("sib-api-v3-sdk");
+
+const ForgotPassRequest = require("../models/forgotPassword");
 const User = require("../models/userModel");
-const sequelize = require("../util/db");
-const forgotPasswordReq = require("../models/forgotPassword");
+const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcrypt");
+const Sib = require("sib-api-v3-sdk");
+const client = Sib.ApiClient.instance;
+client.authentications["api-key"].apiKey = process.env.SIB_API_KEY;
+const tranEmailApi = new Sib.TransactionalEmailsApi();
+const mongoose = require("mongoose");
 
-const apiKey = process.env.SMTP_KEY;
-
-const forgotPasswordData = async (req, res, next) => {
+exports.requestResetPassword = async (request, response, next) => {
   try {
-    const defaultClient = SibApiV3Sdk.ApiClient.instance;
-    const email = req.body.email;
-
-    const user = await User.findOne({ where: { email: email } });
+    const { email } = request.body;
+    const user = await User.findOne({ email });
     if (user) {
-      const forPasswordReq = await forgotPasswordReq.create({
-        userId: user.id,
-        isactive: true,
-      });
-
-      console.log("this is user id ", user.id);
-      console.log(
-        "this is forgot password request userID ",
-        forPasswordReq.userId
-      );
-      console.log("this is forgotPasswordrequst id", forPasswordReq.id);
-
-      const apiKeyInstance = defaultClient.authentications["api-key"];
-      apiKeyInstance.apiKey = apiKey;
-
-      const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
-      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-
-      //configure the email
-      sendSmtpEmail.to = [{ email: email }];
-      sendSmtpEmail.sender = {
+      const sender = {
         email: "arpitsunny6@gmail.com",
-        name: "Arpit Singh",
+        name: "From Arpit",
       };
+      const receivers = [
+        {
+          email: email,
+        },
+      ];
+      const forgotPassRequest = new ForgotPassRequest({
+        userId: user._id
+      });
+      // console.log("userid-----",user._id)
+      const savedRequest = await forgotPassRequest.save();
 
-      sendSmtpEmail.subject = "Password Recovery";
-      sendSmtpEmail.htmlContent = `
-      <p>Hello ${user.username},</p>
-      <p>We received a request to reset your password. Click the link below to reset your password:</p>
-      <p><a href="http://localhost:3000/api/reset/resetPassword/${forPasswordReq.id}">Reset Password</a></p>
-      <p>If you did not request a password reset, please ignore this email.</p>
-      <p>Thank you,</p>
-      <p>Your App Name Team</p>
-    `;
-      // send the email
-
-      const response = await transactionalEmailsApi.sendTransacEmail(
-        sendSmtpEmail
-      );
-      console.log(response);
-      console.log("Recovery Email sent succesfully");
-      res.status(200).json({ message: "Recovery email sent succesfully" });
+      const mailresponse = await tranEmailApi.sendTransacEmail({
+        sender,
+        to: receivers,
+        subject: "Reset Your Password",
+        htmlContent: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Password Reset</title>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h1 class="text-center">Reset Your Password</h1>
+                                            <p class="text-center">Click the button below to reset your admin account password:</p>
+                                            <div class="text-center">
+                                                <a href="${process.env.WEBSITE}/user/reset/{{params.role}}" class="btn btn-primary">Reset Password</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>`,
+        params: {
+          role: savedRequest._id,
+        },
+      });
+      response.status(200).json({ message: "Password reset email sent" });
     } else {
-      res.status(404).json({ message: "User not found" });
+      response.status(404).json({ message: "User not found" });
     }
-  } catch (err) {
-    console.error(
-      "Error sending recovery email:",
-      err.response ? err.response.text : err.message
-    );
-    res
-      .status(500)
-      .json({ message: "Error occured while sending recovery email" });
+  } catch (error) {
+    console.log(error);
+    response.status(500).json({ message: "Interenal Server Error" });
   }
 };
 
-const resetPassword = async (req, res, next) => {
+exports.resetPasswordForm = async (request, response, next) => {
   try {
-    const forPasswordRequest = await forgotPasswordReq.findOne({
-      where: { id: req.params.uuid },
-    });
-    if (!forPasswordRequest || !forPasswordRequest.isactive) {
-      return res.status(401).json({ message: "Invalid reset link" });
+    const { forgotId } = request.params;
+    console.log(forgotId);
+    const forgotPassRequest = await ForgotPassRequest.findById(forgotId);
+
+    if (forgotPassRequest && forgotPassRequest.isactive) {
+      forgotPassRequest.isactive = false;
+      await forgotPassRequest.save();
+      response.sendFile("reset.html", { root: "views" });
+    } else {
+      return response.status(401).json({ message: "Link has been expired" });
     }
-
-    const userId = forPasswordRequest.userId;
-
-    res.redirect(`http://localhost:3000/api/resetPage?uuid=${req.params.uuid}`);
-  } catch (err) {
-    console.log("Error in resetPssword route:", err);
-    res.status(500).json({ message: "internal Server Erorr" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    response.status(500).json({ message: "Internal server error" });
   }
 };
 
-const newPassword = async (req, res) => {
-  let t;
+exports.resetPassword = async (request, response, next) => {
   try {
-    const password = req.body.password;
-    const uuid = req.body.uuid;
+    const { resetid, newpassword } = request.body;
+    const forgotPassRequest = await ForgotPassRequest.findById(resetid);
 
-    const forPasswordRequest = await forgotPasswordReq.findOne({
-      where: { id: uuid, isactive: true },
-    });
-    if (!forPasswordRequest) {
-      return res.status(401).json({ message: "Invalid reset link" });
+    if (forgotPassRequest && forgotPassRequest.isactive) {
+      const user = await User.findById(forgotPassRequest.userId);
+
+      const hashedPassword = await bcrypt.hash(newpassword, 10);
+      user.password = hashedPassword;
+
+      await user.save();
+      response.status(200).json({ message: "Password reset successful." });
+    } else {
+      response.status(403).json({ message: "Link has expired" });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = forPasswordRequest.userId;
-    t = await sequelize.transaction();
-    const updatedUser = await User.update(
-      { password: hashedPassword },
-      { where: { id: userId } },
-      { transaction: t }
-    );
-
-    await forPasswordRequest.update({ isactive: false }, { transaction: t });
-
-    await t.commit();
-    console.log(updatedUser);
-    res.status(200).json({ message: "paswword updated succesfully" });
-  } catch (err) {
-    if (t) {
-      await t.rollback();
-    }
-
-    console.log(err);
-    res.status(500).json({ message: "Internal Server error" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    response.status(500).json({ message: "Internal server error" });
   }
 };
-
-module.exports = { forgotPasswordData, resetPassword, newPassword };
